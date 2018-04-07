@@ -5,8 +5,6 @@ var formatNumber = d3.format(",d"),
   formatTime = d3.time.format("%I:%M %p");
 
 
-// data across years
-
 var width = 800,
     height = 800;
 
@@ -14,17 +12,19 @@ var width = 800,
 var the_key =null; 
 var map_dataset = null; 
 
-var color = d3.scale.linear().domain([0,20]).clamp(true).range(['#fff','#409A99']); 
+var color = d3.scale.linear().domain([0,20]).clamp(true).range(['#eee','#409A99']); 
 
 // array of ids 
 var ids = [] 
 
 // dictionary of d3 maps 
 var datasets= {};
+
 var extents = {}; 
 
 
-var path = d3.geo.path().projection(d3.geo.albers().scale(62000).translate([-6600,height*5.2]));
+///FIXME hardcoded Projection
+var path = d3.geo.path().projection(d3.geo.albers().scale(62000).translate([-6600,height*5.0]));
 
 var svg = d3.select("#map").append("svg")
     .attr("width", width)
@@ -48,22 +48,20 @@ tip = d3.tip()
     
 svg.call(tip);
 
-//var legend = d3.select("#map-legend").
-//  append("svg:svg").
-//  attr("width", 160).
-//  attr("height", 10)
-//for (var i = 0; i <= 7; i++) {
-//  legend.append("svg:rect").
-//  attr("x", i*20).
-//  attr("height", 10).
-//  attr("width", 20).
-//  attr("class", "q" + i + "-9 ");//color
-//};
+var legend = d3.select("#map-legend").
+  append("svg:svg").
+  attr("width", 160).
+  attr("height", 10)
+for (var i = 0; i <= 20; i++) {
+  legend.append("svg:rect").
+  attr("x", i*7).
+  attr("height", 10).
+  attr("width", 20).
+  attr("fill", color(i));//color
+};
 
 var cf = crossfilter(); 
 var all = cf.groupAll();
-var cf_item = {}; 
-var cf_items = {}; 
 
 queue()
     .defer(d3.json,"chicago.geojson")
@@ -84,13 +82,14 @@ queue()
         console.log("key: " + the_key); 
         console.log("map: " + map_dataset); 
 
+
+        idx = 0; 
         for (var i in d)
         {
           if (i == the_key) continue; 
           datasets[i] =d3.map(); 
-          cf_item[i] = cf.dimension(function(d) { return d[i]; }); 
-          cf_items[i] = cf_item[i].group(); 
-          d3.select("#charts").append("div").attr("id",i+"_chart").attr("class","chart"); 
+          d3.select("#charts").append("div").attr("id",i+"_chart").attr("class","chart").html(i + ":  <a href='javascript:reset("+idx + ")'>reset</a>"); 
+          idx++ 
 
         }
       }
@@ -118,6 +117,8 @@ function ready(error, M) {
 
   if (error) throw error; 
 
+  d3.select("#leg_title").html(map_dataset); 
+
   for (i in datasets)
   {
     var vmin = null;
@@ -131,9 +132,11 @@ function ready(error, M) {
 
     }
     extents[i] = [vmin,vmax]; 
-    console.log("min/max " + i + ":" + vmin + " "+ vmax); 
+    //console.log("min/max " + i + ":" + vmin + " "+ vmax); 
   }
 
+  d3.select("#leg_min").html(extents[map_dataset][0]); 
+  d3.select("#leg_max").html(extents[map_dataset][1]); 
 
   svg.append("g")
       .attr("class", "regions")
@@ -156,13 +159,17 @@ function ready(error, M) {
 
   var charts = []; 
   
+
   for (d in datasets) 
   {
+//    console.log(cf_item[d].filterAll().top(Infinity)); 
     charts.push(
-    barChart(true)
-      .dimension(cf_item[d])
-      .group(cf_items[d])
-    .x(d3.scale.linear())); 
+    barChart(false)
+      .dimension(cf.dimension(function(dd) { return dd[d]; } ))
+    .x(d3.scale.linear().domain(extents[d]).range([0,700])
+    )); 
+
+    charts[charts.length-1].group(charts[charts.length-1].dimension().group()); 
 
   }
 
@@ -316,11 +323,16 @@ function ready(error, M) {
       var selected = [];
 
       dimension.filterRange(extent).top(Infinity).forEach(function(d) {
-        selected.push(d.id)
+        selected.push(getID(d))
       });
-      svg.attr("class", "counties")
+      svg.attr("class", "regions")
         .selectAll("path")
-          .style("fill", function(d) { if (selected.indexOf(d.id) >= 0) {return "q8-9"} else if (extant.indexOf(d.id) >= 0) {return "q5-9"} else {return null;}});
+          .style("fill", function(d) {
+
+//           console.log(getID(d),selected); 
+            if (selected.indexOf(getID(d)) >= 0) {return getColor(d)} else if (ids.indexOf(getID(d)) >= 0) {return "#eee"} else {return null;}
+
+          });
 
     });
 
@@ -406,7 +418,7 @@ function ready(error, M) {
       c.filter(null);
     })
     renderAll();
-    svg.attr("class", "counties")
+    svg.attr("class", "regions")
       .selectAll("path")
         .style("fill", getColor); 
   };
@@ -415,18 +427,18 @@ function ready(error, M) {
 
 function getColor(d) 
 {
-  console.log("Inside getColor"); 
-  console.log(getID(d)); 
-  console.log(datasets[map_dataset].get(getID(d))); 
+//  console.log("Inside getColor"); 
+ // console.log(getID(d)); 
+//  console.log(datasets[map_dataset].get(getID(d))); 
   var v = (20 * (datasets[map_dataset].get(getID(d)) - extents[map_dataset][0]) / ( extents[map_dataset][1] - extents[map_dataset][0])); 
-  console.log(v); 
+//  console.log(v); 
   return color(v); 
 }
 
 
 function getID(d) 
 {
-  return d.properties[the_key]; 
+  return d.properties ? d.properties[the_key] : d[the_key] ? d[the_key] :  null; 
 }
 
 

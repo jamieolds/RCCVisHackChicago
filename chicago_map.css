@@ -26,6 +26,7 @@ body {
 
 #charts{
   float: left;
+  width: 50%; 
 }
 
 .chart {
@@ -37,6 +38,12 @@ body {
   padding-left: 1em;
   font-size: smaller;
   color: blue;
+}
+
+#leg_title
+{
+
+  font-size: 16px; 
 }
 
 .background.bar {
@@ -81,7 +88,7 @@ body {
   stroke-linejoin: round;
 }
 #map {
-  float: right;
+  float: left;
 }
 
 #map-legend{
