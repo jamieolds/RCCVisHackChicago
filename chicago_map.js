@@ -24,7 +24,8 @@ var extents = {};
 
 
 ///FIXME hardcoded Projection
-var path = d3.geo.path().projection(d3.geo.albers().scale(62000).translate([-6600,height*5.0]));
+var projection = d3.geo.mercator().scale(1); 
+var path = d3.geo.path().projection(projection);
 
 var svg = d3.select("#map").append("svg")
     .attr("width", width)
@@ -79,8 +80,8 @@ queue()
           idx++; 
         }
 
-        console.log("key: " + the_key); 
-        console.log("map: " + map_dataset); 
+//        console.log("key: " + the_key); 
+//        console.log("map: " + map_dataset); 
 
 
         idx = 0; 
@@ -120,6 +121,19 @@ function ready(error, M) {
 
   if (error) throw error; 
 
+  var bbox_path = path.bounds(M); 
+  var scale = 0.95 / Math.max(
+     (bbox_path[1][0] - bbox_path[0][0])/width, 
+     (bbox_path[1][1] - bbox_path[0][1])/height ); 
+  
+//  console.log(scale); 
+  var bbox_feature = d3.geo.bounds(M); 
+  var center = [ 
+    (bbox_feature[1][0]  + bbox_feature[0][0])/2, 
+    (bbox_feature[1][1]  + bbox_feature[0][1])/2 ]; 
+
+//  console.log(center); 
+  projection.scale(scale).center(center).translate([width/2,height/2]); 
 
   for (i in datasets)
   {
