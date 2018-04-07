@@ -64,8 +64,8 @@ var cf = crossfilter();
 var all = cf.groupAll();
 
 queue()
-    .defer(d3.json,"chicago.geojson")
-    .defer(d3.tsv,"comm_area_data.tsv", function(d) {
+    .defer(d3.json,"data.geojson")
+    .defer(d3.tsv,"data.tsv", function(d) {
 
       //this is our first time through 
 
