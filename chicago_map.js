@@ -41,7 +41,7 @@ tip = d3.tip()
    str = id + "<br/>"; 
    for (key in datasets) 
    {
-      str += datasets[key].get(id)+ "<br/>"
+      str += key + ": "+datasets[key].get(id)+ "<br/>"
    }
    return str; 
  });
@@ -87,6 +87,9 @@ queue()
         for (var i in d)
         {
           if (i == the_key) continue; 
+
+          d3.select("#map_select").append("option").attr("value",i).html(i),
+
           datasets[i] =d3.map(); 
           d3.select("#charts").append("div").attr("id",i+"_chart").attr("class","chart").html(i + ":  <a href='javascript:reset("+idx + ")'>reset</a>"); 
           idx++ 
@@ -117,7 +120,6 @@ function ready(error, M) {
 
   if (error) throw error; 
 
-  d3.select("#leg_title").html(map_dataset); 
 
   for (i in datasets)
   {
@@ -419,6 +421,10 @@ function ready(error, M) {
     charts.forEach(function (c) {
       c.filter(null);
     })
+
+    d3.select("#leg_min").html(extents[map_dataset][0]); 
+    d3.select("#leg_max").html(extents[map_dataset][1]); 
+
     renderAll();
     svg.attr("class", "regions")
       .selectAll("path")
@@ -441,6 +447,13 @@ function getColor(d)
 function getID(d) 
 {
   return d.properties ? d.properties[the_key] : d[the_key] ? d[the_key] :  null; 
+}
+
+function mapUpdate() 
+{
+  map_dataset = d3.select("#map_select").node().value; 
+//  console.log("HERE!" + map_dataset); 
+  reset(); 
 }
 
 

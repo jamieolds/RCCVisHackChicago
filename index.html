@@ -9,14 +9,15 @@
 <script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>  
 
 <body>
-<div id="title">Chicago Chloropeths</div>
+  <div id="title">Chicago Chloropeths  </div>
 <div id="main">
 <div id="charts">
 </div> 
 <div id="map">
   <div id="map-legend">
     <br>
-    <div class="title"><span id="leg_title">Title</span>
+    <div class="title">
+      <select id="map_select" onchange="mapUpdate()"></select>
       <div class="title"><span id="leg_min">min</span> . . . . . . . . . . . . . . . . . <span id="leg_max">max</span> </div>
     </div>
   </div>
