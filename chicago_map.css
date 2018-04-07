@@ -19,14 +19,18 @@ body {
   font-size: 12px;
   font-weight: 400;
   background-color: #fff;
-  width: 960px;
-  height: 800px;
+  width: 100%;
   margin-top: 10px;
+}
+
+#main
+{
+  display: table; 
 }
 
 #charts{
   float: left;
-  width: 50%; 
+  width: 700px; 
 }
 
 .chart {
@@ -42,7 +46,6 @@ body {
 
 #leg_title
 {
-
   font-size: 16px; 
 }
 
