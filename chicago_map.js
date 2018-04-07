@@ -163,10 +163,12 @@ function ready(error, M) {
   for (d in datasets) 
   {
 //    console.log(cf_item[d].filterAll().top(Infinity)); 
+    //
+    var range = [extents[d][0], extents[d][1] + 0.02 * extents[d][1]]; 
     charts.push(
     barChart(false)
       .dimension(cf.dimension(function(dd) { return dd[d]; } ))
-    .x(d3.scale.linear().domain(extents[d]).range([0,700])
+    .x(d3.scale.linear().domain(range).range([0,700])
     )); 
 
     charts[charts.length-1].group(charts[charts.length-1].dimension().group()); 
@@ -330,7 +332,7 @@ function ready(error, M) {
           .style("fill", function(d) {
 
 //           console.log(getID(d),selected); 
-            if (selected.indexOf(getID(d)) >= 0) {return getColor(d)} else if (ids.indexOf(getID(d)) >= 0) {return "#eee"} else {return null;}
+            if (selected.indexOf(getID(d)) >= 0) {return getColor(d)} else if (ids.indexOf(getID(d)) >= 0) {return "#fff"} else {return null;}
 
           });
 
