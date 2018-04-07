@@ -5,8 +5,8 @@ var formatNumber = d3.format(",d"),
   formatTime = d3.time.format("%I:%M %p");
 
 
-var width = 800,
-    height = 800;
+var width = 750,
+    height = 750;
 
 
 var the_key =null; 
