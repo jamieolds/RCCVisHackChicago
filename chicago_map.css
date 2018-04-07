@@ -75,22 +75,11 @@ body {
   cursor: pointer;
 }
 
-.counties {
+.regions {
   fill: none;
   stroke: #C0C0C0;
   stroke-linejoin: round;
 }
-
-.q0-9 { fill:#b2182b; }
-  .q1-9 { fill:#d6604d; }
-  .q2-9 { fill:#f4a582; }
-  .q3-9 { fill:#fddbc7; }
-  .q4-9 { fill:#f7f7f7; }
-  .q5-9 { fill:#d1e5f0; }
-  .q6-9 { fill:#92c5de; }
-  .q7-9 { fill:#4393c3; }
-  .q8-9 { fill:#2166ac; }
-
 #map {
   float: right;
 }

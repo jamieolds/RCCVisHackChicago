@@ -4,21 +4,27 @@ var formatNumber = d3.format(",d"),
   formatDate = d3.time.format("%B %d, %Y"),
   formatTime = d3.time.format("%I:%M %p");
 
+
 // data across years
-var extant = [];
 
-var width = 960,
-    height = 500;
+var width = 800,
+    height = 800;
 
-var rateById = d3.map(),
-  popById = d3.map(),
-  nameById = d3.map();
 
-var quantize = d3.scale.quantize()
-    .domain([-.02, .05])
-    .range(d3.range(9).map(function(i) { return "q" + i + "-9"; }));
+var the_key =null; 
+var map_dataset = null; 
 
-var path = d3.geo.path();
+var color = d3.scale.linear().domain([0,20]).clamp(true).range(['#fff','#409A99']); 
+
+// array of ids 
+var ids = [] 
+
+// dictionary of d3 maps 
+var datasets= {};
+var extents = {}; 
+
+
+var path = d3.geo.path().projection(d3.geo.albers().scale(62000).translate([-6600,height*5.2]));
 
 var svg = d3.select("#map").append("svg")
     .attr("width", width)
@@ -29,80 +35,136 @@ tip = d3.tip()
   .offset([-10, 0])
   .direction('n')
   .html(function(d) {
-    return nameById.get(d.id) + "<br/>Income change: " + (rateById.get(d.id)*100).toFixed(2) + "%" +
-    "<br/>Population change: " + (popById.get(d.id)*100).toFixed(2) + "%" 
+   
+
+   var id = getID(d); 
+   str = id + "<br/>"; 
+   for (key in datasets) 
+   {
+      str += datasets[key].get(id)+ "<br/>"
+   }
+   return str; 
  });
     
 svg.call(tip);
 
-var legend = d3.select("#map-legend").
-  append("svg:svg").
-  attr("width", 160).
-  attr("height", 10)
-for (var i = 0; i <= 7; i++) {
-  legend.append("svg:rect").
-  attr("x", i*20).
-  attr("height", 10).
-  attr("width", 20).
-  attr("class", "q" + i + "-9 ");//color
-};
+//var legend = d3.select("#map-legend").
+//  append("svg:svg").
+//  attr("width", 160).
+//  attr("height", 10)
+//for (var i = 0; i <= 7; i++) {
+//  legend.append("svg:rect").
+//  attr("x", i*20).
+//  attr("height", 10).
+//  attr("width", 20).
+//  attr("class", "q" + i + "-9 ");//color
+//};
 
-var nation = crossfilter(),
-  all = nation.groupAll(),
-  per_cap = nation.dimension(function(d) { return d.Per_capita_personal_income; }),
-  per_caps = per_cap.group(),
-  population = nation.dimension(function(d) { return d.Population; }),
-  populations = population.group();
+var cf = crossfilter(); 
+var all = cf.groupAll();
+var cf_item = {}; 
+var cf_items = {}; 
 
 queue()
-    .defer(d3.json, "counties.json")
-    .defer(d3.tsv, "county_growth.tsv", function(d) {
+    .defer(d3.json,"chicago.geojson")
+    .defer(d3.tsv,"comm_area_data.tsv", function(d) {
 
-      for(var propertyName in d) {
-        if (propertyName == "Area") {
-          continue;
-        };
-        d[propertyName] = +d[propertyName];
+      //this is our first time through 
+
+      if (the_key === null) 
+      {
+        var idx = 0; 
+        for (var i in d) 
+        {
+          if (idx==0) the_key = i; 
+          else if (idx==1) map_dataset = i; 
+          idx++; 
+        }
+
+        console.log("key: " + the_key); 
+        console.log("map: " + map_dataset); 
+
+        for (var i in d)
+        {
+          if (i == the_key) continue; 
+          datasets[i] =d3.map(); 
+          cf_item[i] = cf.dimension(function(d) { return d[i]; }); 
+          cf_items[i] = cf_item[i].group(); 
+          d3.select("#charts").append("div").attr("id",i+"_chart").attr("class","chart"); 
+
+        }
       }
 
-      nation.add([d]);
-      extant.push(d.id);
+      for(var i in d) {
+        //Convert to numbers... ift they are numbers 
+        if (!isNaN(+d[i]))
+        {
+          d[i] = +d[i];
+        }
+ 
+        //Set the key to the first column... hopefully it processes it in order! 
+        if (i != the_key) 
+        {
+          datasets[i].set(d[the_key], d[i]); 
+        }
+      }
 
-      rateById.set(d.id, d.Per_capita_personal_income);
-      popById.set(d.id, d.Population);
-      nameById.set(d.id, d.Area);
+      cf.add([d]);
+      ids.push(d[the_key]);
     })
     .await(ready);
 
-function ready(error, us) {
+function ready(error, M) {
+
+  if (error) throw error; 
+
+  for (i in datasets)
+  {
+    var vmin = null;
+    var vmax = null;
+
+    for (j=0; j < datasets[i].values().length; j++)
+    {
+      var v = datasets[i].values()[j]; 
+      if (vmin == null || v < vmin) vmin =v;
+      if (vmax == null || v > vmax) vmax =v;
+
+    }
+    extents[i] = [vmin,vmax]; 
+    console.log("min/max " + i + ":" + vmin + " "+ vmax); 
+  }
+
+
   svg.append("g")
-      .attr("class", "counties")
+      .attr("class", "regions")
     .selectAll("path")
-      .data(topojson.feature(us, us.objects.counties).features)
+      .data(M.features)
     .enter().append("path")
-      .attr("class", function(d) { return quantize(rateById.get(d.id)); })
-      .attr("id", function(d) { return d.id; })
+      .style('fill', getColor)
+      .attr("id", getID)
       .attr("d", path)
       .on('mouseover',tip.show)
       .on('mouseout', tip.hide);
 
-  var charts = [
-      
-    barChart(true)
-      .dimension(population)
-      .group(populations)
-    .x(d3.scale.linear()
-      .domain([-.34, .47])
-      .range([0, 900])),
 
-    barChart(true)
-      .dimension(per_cap)
-      .group(per_caps)
-    .x(d3.scale.linear()
-      .domain([-.34, .47])
-      .range([0, 900]))
+ // var bbox = svg.selectAll("path").node().getBBox();
+//  var center = [bbox.x + bbox.width/2, bbox.y + bbox.height/2]; 
+ // var scale = 10; 
 
-  ];
+//  svg.attr("transform", "scale(" + scale + ")" + "translate("+ center[0] + "," +center[1]+")"); 
+//  svg.attr("transform", "scale(20)translate(100,100)"); 
+
+  var charts = []; 
+  
+  for (d in datasets) 
+  {
+    charts.push(
+    barChart(true)
+      .dimension(cf_item[d])
+      .group(cf_items[d])
+    .x(d3.scale.linear())); 
+
+  }
 
   var chart = d3.selectAll(".chart")
     .data(charts)
@@ -258,7 +320,7 @@ function ready(error, us) {
       });
       svg.attr("class", "counties")
         .selectAll("path")
-          .attr("class", function(d) { if (selected.indexOf(d.id) >= 0) {return "q8-9"} else if (extant.indexOf(d.id) >= 0) {return "q5-9"} else {return null;}});
+          .style("fill", function(d) { if (selected.indexOf(d.id) >= 0) {return "q8-9"} else if (extant.indexOf(d.id) >= 0) {return "q5-9"} else {return null;}});
 
     });
 
@@ -346,7 +408,25 @@ function ready(error, us) {
     renderAll();
     svg.attr("class", "counties")
       .selectAll("path")
-        .attr("class", function(d) { return quantize(rateById.get(d.id)); });
+        .style("fill", getColor); 
   };
 
 }
+
+function getColor(d) 
+{
+  console.log("Inside getColor"); 
+  console.log(getID(d)); 
+  console.log(datasets[map_dataset].get(getID(d))); 
+  var v = (20 * (datasets[map_dataset].get(getID(d)) - extents[map_dataset][0]) / ( extents[map_dataset][1] - extents[map_dataset][0])); 
+  console.log(v); 
+  return color(v); 
+}
+
+
+function getID(d) 
+{
+  return d.properties[the_key]; 
+}
+
+
